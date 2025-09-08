@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Natural Resource Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        canvas {
+            border: 2px solid #e5e7eb;
+            background-color: #ffffff;
+            border-radius: 1rem;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 600px;
+            width: 100%;
+            background-color: #ffffff;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+            position: relative; /* Add this to anchor the absolute positioned signature */
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="container">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Natural Resource Simulation</h1>
+        <p class="text-gray-600 text-center mb-6">Explore sustainable and unsustainable resource management by comparing usage and renewal rates.</p>
+
+        <div class="w-full flex justify-center space-x-4 mb-8">
+            <button id="sustainableBtn" class="px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-full shadow-lg transition-transform transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75">
+                Sustainable Use
+            </button>
+            <button id="unsustainableBtn" class="px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-full shadow-lg transition-transform transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-75">
+                Unsustainable Use
+            </button>
+        </div>
+
+        <canvas id="resourceCanvas" width="400" height="400" class="w-full h-auto max-w-sm"></canvas>
+
+        <div class="mt-6 w-full text-center">
+            <h3 id="scenarioLabel" class="text-xl font-bold mb-2">Current Scenario:</h3>
+            <p id="resourceLevel" class="text-lg text-gray-700"></p>
+        </div>
+
+        <!-- Signature added here -->
+        <p class="absolute bottom-4 right-4 text-sm text-gray-500">By Sia</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('resourceCanvas');
+        const ctx = canvas.getContext('2d');
+        const sustainableBtn = document.getElementById('sustainableBtn');
+        const unsustainableBtn = document.getElementById('unsustainableBtn');
+        const scenarioLabel = document.getElementById('scenarioLabel');
+        const resourceLevelText = document.getElementById('resourceLevel');
+
+        // Initial state variables
+        let resource = 50; // Set initial resource level to 50%
+        let renewalRate = 0;
+        let usageRate = 0;
+        let scenarioName = "";
+
+        // Function to set up simulation parameters based on scenario
+        function setScenario(type) {
+            cancelAnimationFrame(animationFrameId); // Stop any previous animation
+            if (type === 'sustainable') {
+                renewalRate = 0.4; // Renewal rate is higher than usage
+                usageRate = 0.2;   // Usage rate is lower than renewal
+                scenarioName = "Sustainable Use";
+                scenarioLabel.innerHTML = `Current Scenario: <span class="text-green-600">${scenarioName}</span>`;
+            } else {
+                renewalRate = 0.2;   // Renewal rate is lower than usage
+                usageRate = 0.6;     // Usage rate is higher than renewal
+                scenarioName = "Unsustainable Use";
+                scenarioLabel.innerHTML = `Current Scenario: <span class="text-red-600">${scenarioName}</span>`;
+            }
+            // Reset the resource level to a non-100% value for a new simulation
+            resource = 50;
+            // Start the new animation
+            animate();
+        }
+
+        // Handle window resize to keep canvas responsive
+        function resizeCanvas() {
+            const containerWidth = canvas.parentElement.clientWidth;
+            const size = Math.min(containerWidth, 400);
+            canvas.width = size;
+            canvas.height = size;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        let animationFrameId;
+
+        function animate() {
+            // Update resource level
+            resource = Math.max(0, Math.min(100, resource + renewalRate - usageRate));
+
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const padding = 20;
+            const barWidth = 100;
+            const barHeight = canvas.height - 2 * padding;
+            const x = (canvas.width / 2) - (barWidth / 2);
+            const y = padding + (barHeight * (100 - resource) / 100);
+            const currentHeight = barHeight * (resource / 100);
+
+            // Draw the outer container of the resource
+            ctx.strokeStyle = '#6b7280';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(x, padding, barWidth, barHeight);
+
+            // Draw the resource fill
+            if (resource > 0) {
+                ctx.fillStyle = resource > 25 ? '#10b981' : '#f59e0b'; // Green for healthy, orange for low
+                if (resource <= 10) {
+                    ctx.fillStyle = '#ef4444'; // Red for very low
+                }
+                ctx.fillRect(x, y, barWidth, currentHeight);
+            }
+
+            // --- Draw visual representation of rates with enhanced contrast ---
+            const arrowPadding = 20;
+            const arrowYOffset = 100; // New offset to move arrows up
+
+            // Draw renewal arrow (inflow)
+            ctx.strokeStyle = '#16a34a'; // Darker green for contrast
+            ctx.lineWidth = renewalRate * 30; // Increased multiplier for more obvious width
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(x + barWidth + arrowPadding, y + currentHeight - arrowYOffset);
+            ctx.lineTo(x + barWidth + arrowPadding, y + currentHeight - 30 - arrowYOffset);
+            ctx.stroke();
+            // Draw arrowhead
+            ctx.beginPath();
+            ctx.moveTo(x + barWidth + arrowPadding - 5, y + currentHeight - 20 - arrowYOffset);
+            ctx.lineTo(x + barWidth + arrowPadding, y + currentHeight - 30 - arrowYOffset);
+            ctx.lineTo(x + barWidth + arrowPadding + 5, y + currentHeight - 20 - arrowYOffset);
+            ctx.fillStyle = '#16a34a';
+            ctx.fill();
+
+            // Draw usage arrow (outflow)
+            ctx.strokeStyle = '#dc2626'; // Darker red for contrast
+            ctx.lineWidth = usageRate * 30; // Increased multiplier for more obvious width
+            ctx.beginPath();
+            ctx.moveTo(x + barWidth + arrowPadding, y + currentHeight - arrowYOffset);
+            ctx.lineTo(x + barWidth + arrowPadding, y + currentHeight + 30 - arrowYOffset);
+            ctx.stroke();
+            // Draw arrowhead
+            ctx.beginPath();
+            ctx.moveTo(x + barWidth + arrowPadding - 5, y + currentHeight + 20 - arrowYOffset);
+            ctx.lineTo(x + barWidth + arrowPadding, y + currentHeight + 30 - arrowYOffset);
+            ctx.lineTo(x + barWidth + arrowPadding + 5, y + currentHeight + 20 - arrowYOffset);
+            ctx.fillStyle = '#dc2626';
+            ctx.fill();
+
+            // Add text labels next to the arrows
+            ctx.fillStyle = '#1f2937';
+            ctx.font = '14px Inter';
+            ctx.textAlign = 'left';
+            ctx.fillText('Renewal', x + barWidth + arrowPadding + 10, y + currentHeight - 15 - arrowYOffset);
+            ctx.fillText('Usage', x + barWidth + arrowPadding + 10, y + currentHeight + 25 - arrowYOffset);
+            // --- End of new visual elements ---
+
+
+            // Display resource level percentage
+            resourceLevelText.textContent = `Resource Level: ${resource.toFixed(1)}%`;
+
+            // Display rates on the canvas
+            ctx.fillStyle = '#1f2937';
+            ctx.font = '16px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText(`Renewal: +${renewalRate.toFixed(2)}`, canvas.width / 2, padding + barHeight + 30);
+            ctx.fillText(`Usage: -${usageRate.toFixed(2)}`, canvas.width / 2, padding + barHeight + 50);
+
+            if (resource > 0 || scenarioName === 'Sustainable Use') {
+                animationFrameId = requestAnimationFrame(animate);
+            } else {
+                // Display "Exhausted" message when resource hits zero
+                ctx.font = '24px Inter Bold';
+                ctx.fillStyle = '#b91c1c';
+                ctx.fillText("Resource Exhausted!", canvas.width / 2, canvas.height / 2);
+            }
+        }
+        
+        // Add event listeners
+        sustainableBtn.addEventListener('click', () => setScenario('sustainable'));
+        unsustainableBtn.addEventListener('click', () => setScenario('unsustainable'));
+
+        // Start with the sustainable scenario by default
+        window.onload = () => {
+          setScenario('sustainable');
+        };
+    </script>
+</body>
+</html>
